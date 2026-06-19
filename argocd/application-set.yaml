@@ -19,9 +19,9 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/ORG/REPO.git
-        targetRevision: HEAD
-        path: telegraf-sw-dell
+        repoURL: https://github.com/happiolaza/telegraf-sw-dell.git
+        targetRevision: main
+        path: .
         helm:
           valueFiles:
           - {{ valuesFile }}

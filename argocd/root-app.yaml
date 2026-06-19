@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/ORG/REPO.git
-    targetRevision: HEAD
-    path: telegraf-sw-dell/argocd
+    repoURL: https://github.com/happiolaza/telegraf-sw-dell.git
+    targetRevision: main
+    path: argocd
   destination:
     server: https://kubernetes.default.svc
     namespace: telemetria-switches
