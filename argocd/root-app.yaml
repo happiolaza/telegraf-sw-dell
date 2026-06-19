@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telegraf-sw-dell-root
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ORG/REPO.git
+    targetRevision: HEAD
+    path: telegraf-sw-dell/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telemetria-switches
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "telegraf-site.fullname" . }}
+  labels:
+    {{- include "telegraf-site.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "telegraf-site.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        {{- include "telegraf-site.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: telegraf
+        image: {{ .Values.global.image | default "quay.io/influxdb/telegraf:1.29-alpine" }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy | default "IfNotPresent" }}
+        ports:
+        - containerPort: 9273
+          name: telegraf
+          protocol: TCP
+        env:
+        - name: HTTP_PROXY
+          value: {{ .Values.global.proxy.http | quote }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.global.proxy.https | quote }}
+        - name: NO_PROXY
+          value: {{ .Values.global.proxy.noProxy | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: snmp-mibs
+          mountPath: /usr/share/snmp/mibs
+        - name: telegraf-config-volume
+          mountPath: /etc/telegraf/telegraf.conf
+          subPath: telegraf.conf
+      volumes:
+      - name: snmp-mibs
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.existingClaim | default (printf "%s-mibs" (include "telegraf-site.fullname" .)) }}
+      - name: telegraf-config-volume
+        configMap:
+          name: {{ include "telegraf-site.fullname" . }}-config
+          defaultMode: 420
+          items:
+          - key: telegraf.conf
+            path: telegraf.conf

@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "telegraf-site.fullname" . }}-config
+  labels:
+    {{- include "telegraf-site.labels" . | nindent 4 }}
+data:
+  telegraf.conf: |
+    [global_tags]
+      site = "{{ .Values.site.name }}"
+
+    [agent]
+      interval = "{{ .Values.snmp.interval | default "60s" }}"
+      round_interval = false
+      metric_batch_size = 1000
+      metric_buffer_limit = 50000
+      collection_jitter = "1s"
+      flush_interval = "5s"
+      flush_jitter = "2s"
+      precision = "1s"
+      hostname = ""
+      omit_hostname = false
+
+    ###############################################################################
+    #                            OUTPUT PLUGINS                                   #
+    ###############################################################################
+
+    [[outputs.prometheus_client]]
+      listen = ":9273"
+      metric_version = 2
+
+    ###############################################################################
+    #                            INPUT PLUGINS                                    #
+    ###############################################################################
+
+    [[inputs.snmp]]
+      name = "{{ .Values.site.name }}"
+      agents = [
+        {{- range .Values.snmp.agents }}
+        "udp://{{ . }}:161",
+        {{- end }}
+      ]
+      version = {{ .Values.snmp.version | default 2 }}
+      community = "{{ .Values.snmp.community }}"
+      path = ["/usr/share/snmp/mibs"]
+      interval = "{{ .Values.snmp.interval | default "60s" }}"
+
+      [[inputs.snmp.field]]
+        oid = "RFC1213-MIB::sysName.0"
+        name = "{{ .Values.snmp.deviceTagName | default "device" }}"
+        is_tag = true
+
+      [[inputs.snmp.field]]
+        oid = "RFC1213-MIB::sysUpTime.0"
+        name = "sw_sysUpTime"
+
+      [[inputs.snmp.table]]
+        oid = "IF-MIB::ifTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "IF-MIB::ifXTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "IF-MIB::ifStackTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "IF-MIB::ifRcvAddressTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "HOST-RESOURCES-MIB::hrProcessorTable"
+        name = "hrProcessor"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+        [[inputs.snmp.table.field]]
+          oid = "HOST-RESOURCES-MIB::hrProcessorFrwID"
+          name = "hrProcessorFrwID"
+          is_tag = true
+
+      [[inputs.snmp.table]]
+        oid = "DELLEMC-OS10-CHASSIS-MIB::os10ChassisTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "DELLEMC-OS10-CHASSIS-MIB::os10CardTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "DELLEMC-OS10-CHASSIS-MIB::os10PowerSupplyTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "DELLEMC-OS10-CHASSIS-MIB::os10FanTrayTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+
+      [[inputs.snmp.table]]
+        oid = "DELLEMC-OS10-CHASSIS-MIB::os10FanTable"
+        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]

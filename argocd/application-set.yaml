@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: telegraf-sw-dell
+  namespace: openshift-gitops
+spec:
+  generators:
+  - list:
+      elements:
+      - site: cuyo
+        valuesFile: values-cuyo.yaml
+      - site: republica
+        valuesFile: values-republica.yaml
+      - site: barracas
+        valuesFile: values-barracas.yaml
+  template:
+    metadata:
+      name: telegraf-{{ site }}
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/ORG/REPO.git
+        targetRevision: HEAD
+        path: telegraf-sw-dell
+        helm:
+          valueFiles:
+          - {{ valuesFile }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: telemetria-switches
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - ServerSideApply=true

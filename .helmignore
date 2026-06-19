@@ -1,0 +1,8 @@
+# Patterns to ignore when packaging
+.git
+.gitignore
+*.md
+values-cuyo.yaml
+values-republica.yaml
+values-barracas.yaml
+prometheus-scrape-config.yaml

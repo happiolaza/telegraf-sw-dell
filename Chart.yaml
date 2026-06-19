@@ -1,0 +1,13 @@
+apiVersion: v2
+name: telegraf-sw-dell
+description: Telegraf deployment for Dell switches per site (Cuyo, República, Barracas, etc.)
+type: application
+version: 1.0.0
+appVersion: "1.29"
+keywords:
+  - telegraf
+  - snmp
+  - dell
+  - monitoring
+maintainers:
+  - name: gapiolaz

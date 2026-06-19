@@ -1,0 +1,41 @@
+# Configuración para agregar al ConfigMap "prometehus-config" en namespace "grafana-operaciones"
+# Reemplazar los jobs existentes de telegraf-sw-cyo, telegraf-service-sw-republica
+# y agregar el nuevo job para Barracas.
+#
+# Los Services ClusterIP se resuelven cross-namespace via DNS interno.
+#
+# Aplicar con:
+#   oc edit configmap prometehus-config -n grafana-operaciones
+#   # Luego reiniciar Prometheus para que tome el nuevo config:
+#   oc rollout restart deployment prometheus -n grafana-operaciones
+
+scrape_configs:
+  # --- Cuyo ---
+  - job_name: 'telegraf-sw-cyo'
+    scrape_interval: 60s
+    metrics_path: /metrics
+    static_configs:
+    - targets: ['telegraf-cuyo.telemetria-switches.svc.cluster.local:9273']
+    relabel_configs:
+    - target_label: site
+      replacement: cuyo
+
+  # --- República ---
+  - job_name: 'telegraf-sw-republica'
+    scrape_interval: 60s
+    metrics_path: /metrics
+    static_configs:
+    - targets: ['telegraf-republica.telemetria-switches.svc.cluster.local:9273']
+    relabel_configs:
+    - target_label: site
+      replacement: republica
+
+  # --- Barracas (nuevo) ---
+  - job_name: 'telegraf-sw-barracas'
+    scrape_interval: 60s
+    metrics_path: /metrics
+    static_configs:
+    - targets: ['telegraf-barracas.telemetria-switches.svc.cluster.local:9273']
+    relabel_configs:
+    - target_label: site
+      replacement: barracas

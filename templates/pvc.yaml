@@ -1,0 +1,15 @@
+{{- if not .Values.pvc.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "telegraf-site.fullname" . }}-mibs
+  labels:
+    {{- include "telegraf-site.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size | default "100Mi" }}
+  storageClassName: {{ .Values.pvc.storageClass | default "tcloud-unity-iscsi-nlsas" }}
+{{- end }}

@@ -1,0 +1,39 @@
+# Default values for telegraf-sw-dell
+# Deploy with: helm install -n telemetria-switches ...
+global:
+  image: quay.io/influxdb/telegraf:1.29-alpine
+  imagePullPolicy: IfNotPresent
+  proxy:
+    http: http://10.166.15.178:8080
+    https: http://10.166.15.178:8080
+    noProxy: "*.tcloud.telefonica.com.ar,.svc,.svc.cluster.local,.cuyorh.tcloud.ar,.brcrh.tcloud.ar,10.166.46.203,10.213.65.74,10.166.44.203,whiteidam-sso.cuyows.tcloud.ar,10.166.45.105"
+
+site:
+  name: ""                      # REQUIRED: site identifier (cuyo, republica, barracas, ...)
+  environment: production
+
+snmp:
+  community: "SupportAssistSNMP"
+  version: 2
+  interval: 60s
+  deviceTagName: "device"       # tag name for sysName in Prometheus metrics
+  agents: []                    # REQUIRED: list of switch IPs
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 200m
+    memory: 128Mi
+
+service:
+  type: ClusterIP
+  port: 9273
+
+pvc:
+  size: 100Mi
+  storageClass: tcloud-unity-iscsi-nlsas
+  existingClaim: ""             # set to reuse an existing PVC (must be in same namespace)
