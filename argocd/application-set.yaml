@@ -27,7 +27,7 @@ spec:
           - {{ valuesFile }}
       destination:
         server: https://api.wcr-operaciones.cuyows.tcloud.ar:6443
-        namespace: telemetria-switches
+        namespace: telegraf-switch-dell
       syncPolicy:
         automated:
           prune: true
