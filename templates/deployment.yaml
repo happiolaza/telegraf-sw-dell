@@ -35,7 +35,8 @@ spec:
         - /bin/sh
         - -c
         - |
-          apk add --no-cache git
+          apk add --no-cache git net-snmp-tools
+          cp -r /usr/share/snmp/mibs/* /mibs/ 2>/dev/null || true
           git clone --depth 1 --filter=blob:none --sparse {{ .Values.mibs.repo }} /tmp/mibs
           cd /tmp/mibs
           {{- range .Values.mibs.dirs }}
