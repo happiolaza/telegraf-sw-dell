@@ -1,7 +1,7 @@
 # Default values for telegraf-sw-dell
 # Deploy with: helm install -n telemetria-switches ...
 global:
-  image: quay.io/influxdb/telegraf:1.29-alpine
+  image: docker.io/library/telegraf:1.29-alpine
   imagePullPolicy: IfNotPresent
   proxy:
     http: http://10.166.15.178:8080
