@@ -1,0 +1,18 @@
+# Site: República
+# Namespace: telemetria-switches
+site:
+  name: republica
+
+snmp:
+  agents:
+    - 172.29.75.4    # PBL-RPB1-001
+    - 172.29.75.5    # PBL-RPB1-002
+    - 172.29.75.6    # PSL-RPB1-001
+    - 172.29.75.7    # PSL-RPB1-002
+    - 172.29.75.8    # PSL-RPB1-003
+    - 172.29.75.9    # PSL-RPB1-004
+    - 172.29.75.10   # PSP-RPB1-001
+    - 172.29.75.11   # PSP-RPB1-002
+
+pvc:
+  size: 100Mi

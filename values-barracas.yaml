@@ -1,0 +1,16 @@
+# Site: Barracas (NUEVO)
+# Namespace: telemetria-switches
+site:
+  name: barracas
+
+snmp:
+  agents:
+    # Reemplazar con las IPs reales de los switches Dell en Barracas
+    - 10.0.0.1    # PBL-BRC1-001 (ejemplo)
+    - 10.0.0.2    # PBL-BRC1-002 (ejemplo)
+    - 10.0.0.3    # PSL-BRC1-001 (ejemplo)
+    - 10.0.0.4    # PSL-BRC1-002 (ejemplo)
+    - 10.0.0.5    # PSP-BRC1-001 (ejemplo)
+
+pvc:
+  size: 100Mi
