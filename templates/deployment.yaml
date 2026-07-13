@@ -20,6 +20,27 @@ spec:
       labels:
         {{- include "telegraf-site.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.mibs.enabled }}
+      initContainers:
+      - name: mibs-downloader
+        image: alpine:3.19
+        command:
+        - /bin/sh
+        - -c
+        - |
+          apk add --no-cache git
+          git clone --depth 1 --filter=blob:none --sparse {{ .Values.mibs.repo }} /tmp/mibs
+          cd /tmp/mibs
+          {{- range .Values.mibs.dirs }}
+          git sparse-checkout add {{ . }}
+          cp -r {{ . }}/* /mibs/
+          {{- end }}
+          echo "MIBs copied successfully"
+          ls -la /mibs/
+        volumeMounts:
+        - name: snmp-mibs
+          mountPath: /mibs
+      {{- end }}
       containers:
       - name: telegraf
         image: {{ .Values.global.image | default "quay.io/influxdb/telegraf:1.29-alpine" }}

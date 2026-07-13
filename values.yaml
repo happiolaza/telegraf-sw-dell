@@ -37,3 +37,10 @@ pvc:
   size: 100Mi
   storageClass: tcloud-unity-iscsi-nlsas
   existingClaim: ""             # set to reuse an existing PVC (must be in same namespace)
+
+mibs:
+  enabled: true
+  repo: "https://github.com/Poil/MIBs.git"
+  dirs:                         # directories to copy from the repo
+    - dell-os10
+    - dell
