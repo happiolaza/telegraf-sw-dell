@@ -1,41 +1,39 @@
-# Configuración para agregar al ConfigMap "prometehus-config" en namespace "grafana-operaciones"
-# Reemplazar los jobs existentes de telegraf-sw-cyo, telegraf-service-sw-republica
-# y agregar el nuevo job para Barracas.
+# Configuracion para agregar al ConfigMap "prometehus-config" en namespace "grafana-operaciones"
 #
 # Los Services ClusterIP se resuelven cross-namespace via DNS interno.
 #
 # Aplicar con:
-#   oc edit configmap prometehus-config -n grafana-operaciones
-#   # Luego reiniciar Prometheus para que tome el nuevo config:
-#   oc rollout restart deployment prometheus -n grafana-operaciones
+#   kubectl edit configmap prometehus-config -n grafana-operaciones
+#   # Luego reiniciar Prometheus:
+#   kubectl rollout restart deployment prometheus -n grafana-operaciones
 
 scrape_configs:
   # --- Cuyo ---
-  - job_name: 'telegraf-sw-cyo'
-    scrape_interval: 60s
+  - job_name: 'telegraf-sw-cuyo'
+    scrape_interval: 30s
     metrics_path: /metrics
     static_configs:
-    - targets: ['telegraf-cuyo.telemetria-switches.svc.cluster.local:9273']
+    - targets: ['telegraf-cuyo.telegraf-sw-dell.svc.cluster.local:9273']
     relabel_configs:
     - target_label: site
       replacement: cuyo
 
-  # --- República ---
+  # --- Republica ---
   - job_name: 'telegraf-sw-republica'
-    scrape_interval: 60s
+    scrape_interval: 30s
     metrics_path: /metrics
     static_configs:
-    - targets: ['telegraf-republica.telemetria-switches.svc.cluster.local:9273']
+    - targets: ['telegraf-republica.telegraf-sw-dell.svc.cluster.local:9273']
     relabel_configs:
     - target_label: site
       replacement: republica
 
-  # --- Barracas (nuevo) ---
+  # --- Barracas ---
   - job_name: 'telegraf-sw-barracas'
-    scrape_interval: 60s
+    scrape_interval: 30s
     metrics_path: /metrics
     static_configs:
-    - targets: ['telegraf-barracas.telemetria-switches.svc.cluster.local:9273']
+    - targets: ['telegraf-barracas.telegraf-sw-dell.svc.cluster.local:9273']
     relabel_configs:
     - target_label: site
       replacement: barracas
