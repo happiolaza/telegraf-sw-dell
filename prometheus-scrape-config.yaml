@@ -11,6 +11,7 @@ scrape_configs:
   # --- Cuyo ---
   - job_name: 'telegraf-sw-cuyo'
     scrape_interval: 30s
+    scrape_timeout: 30s
     metrics_path: /metrics
     static_configs:
     - targets: ['telegraf-cuyo.telegraf-sw-dell.svc.cluster.local:9273']
@@ -21,6 +22,7 @@ scrape_configs:
   # --- Republica ---
   - job_name: 'telegraf-sw-republica'
     scrape_interval: 30s
+    scrape_timeout: 30s
     metrics_path: /metrics
     static_configs:
     - targets: ['telegraf-republica.telegraf-sw-dell.svc.cluster.local:9273']
@@ -31,6 +33,7 @@ scrape_configs:
   # --- Barracas ---
   - job_name: 'telegraf-sw-barracas'
     scrape_interval: 30s
+    scrape_timeout: 30s
     metrics_path: /metrics
     static_configs:
     - targets: ['telegraf-barracas.telegraf-sw-dell.svc.cluster.local:9273']
