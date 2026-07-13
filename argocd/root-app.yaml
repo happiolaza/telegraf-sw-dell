@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/happiolaza/telegraf-sw-dell.git
+    repoURL: https://whitecicd-tt.cuyows.tcloud.ar/operaciones-red-cloud/telegraf-sw-dell.git
     targetRevision: main
     path: argocd
   destination:
