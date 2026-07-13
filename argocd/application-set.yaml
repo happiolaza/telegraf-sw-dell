@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: telegraf-sw-dell
-  namespace: openshift-gitops
+  namespace: whitecicd
 spec:
   generators:
   - list:
