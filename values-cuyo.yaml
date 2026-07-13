@@ -3,6 +3,8 @@
 site:
   name: cuyo
 
+replicaCount: 1
+
 snmp:
   agents:
     # === VIEJOS (172.28.9.x) ===

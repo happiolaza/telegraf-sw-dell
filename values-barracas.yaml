@@ -3,6 +3,8 @@
 site:
   name: barracas
 
+replicaCount: 1
+
 snmp:
   agents:
     # Reemplazar con las IPs reales de los switches Dell en Barracas

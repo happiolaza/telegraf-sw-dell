@@ -3,6 +3,8 @@
 site:
   name: republica
 
+replicaCount: 1
+
 snmp:
   agents:
     - 172.29.75.4    # PBL-RPB1-001
