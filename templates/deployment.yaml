@@ -24,6 +24,13 @@ spec:
       initContainers:
       - name: mibs-downloader
         image: alpine:3.19
+        env:
+        - name: HTTP_PROXY
+          value: {{ .Values.global.proxy.http | quote }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.global.proxy.https | quote }}
+        - name: NO_PROXY
+          value: {{ .Values.global.proxy.noProxy | quote }}
         command:
         - /bin/sh
         - -c
