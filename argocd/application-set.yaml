@@ -15,19 +15,19 @@ spec:
         valuesFile: values-barracas.yaml
   template:
     metadata:
-      name: telegraf-{{ site }}
+      name: "telegraf-{{ site }}"
     spec:
-      project: default
+      project: operaciones-red-cloud
       source:
         repoURL: https://whitecicd-tt.cuyows.tcloud.ar/operaciones-red-cloud/telegraf-sw-dell.git
         targetRevision: main
         path: .
         helm:
           valueFiles:
-          - {{ valuesFile }}
+          - "{{ valuesFile }}"
       destination:
         server: https://api.wcr-operaciones.cuyows.tcloud.ar:6443
-        namespace: telegraf-switch-dell
+        namespace: telegraf-sw-dell
       syncPolicy:
         automated:
           prune: true
