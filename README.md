@@ -277,51 +277,6 @@ El init container `mibs-downloader` ejecuta al inicio de cada pod:
 4. Copia las Dell MIBs a `/mibs/` (sobre-escribe las estandar si hay conflicto)
 5. El volumen PVC se monta en `/usr/share/snmp/mibs` en el contenedor de telegraf
 
-## Troubleshooting
-
-### Pods en ImagePullBackOff
-
-El cluster wcr-operaciones no tiene acceso a `quay.io`. Usar `docker.io`:
-```yaml
-global:
-  image: docker.io/library/telegraf:1.29-alpine
-```
-
-### Pods en CrashLoopBackOff por MIBs
-
-Si los logs muestran `Cannot find module (IF-MIB)` o `Unknown Object Identifier`:
-- Verificar que el init container completo correctamente
-- Verificar que `net-snmp-tools` se instala y copia las MIBs estandar
-- Verificar que el PVC tiene datos: `kubectl exec -it <pod> -- ls /usr/share/snmp/mibs/`
-
-### OOMKilled
-
-Si el pod se queda sin memoria:
-- Para 34+ switches: `memory limit` debe ser `512Mi` minimo
-- Para 60+ switches: subir a `1Gi`
-- Regla: ~7Mi por switch
-
-### Warnings "did not complete within its flush interval"
-
-Ajustar en `configmap.yaml`:
-```
-metric_batch_size = 5000
-flush_interval = "15s"
-```
-
-### Secret de repo no matchea en ArgoCD
-
-El campo `project` en el secret de repo debe coincidir con el `spec.project` de la Application:
-```yaml
-# Secret
-stringData:
-  project: operaciones-red-cloud
-
-# Application
-spec:
-  project: operaciones-red-cloud
-```
-
 ## Mantenedor
 
 - gapiolaz
