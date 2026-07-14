@@ -79,8 +79,8 @@ pvc:
 
 resources:
   limits:
-    cpu: 800m
-    memory: 512Mi
+    cpu: "1"
+    memory: 1Gi
   requests:
     cpu: 500m
     memory: 512Mi
