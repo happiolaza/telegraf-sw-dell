@@ -37,7 +37,7 @@ data:
     ###############################################################################
 
     [[inputs.snmp]]
-      name = "{{ .Values.site.name }}"
+      name = "prometheus"
       agents = [
         {{- range .Values.snmp.agents }}
         "udp://{{ . }}:161",
