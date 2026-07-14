@@ -78,3 +78,11 @@ mibs:
 
 pvc:
   size: 100Mi
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
