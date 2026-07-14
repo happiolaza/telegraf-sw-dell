@@ -20,7 +20,7 @@ spec:
       project: operaciones-red-cloud
       source:
         repoURL: https://whitecicd-tt.cuyows.tcloud.ar/operaciones-red-cloud/telegraf-sw-dell.git
-        targetRevision: refactor
+        targetRevision: main
         path: .
         helm:
           valueFiles:
