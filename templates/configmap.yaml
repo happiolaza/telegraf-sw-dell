@@ -30,7 +30,7 @@ data:
 
     [[outputs.prometheus_client]]
       listen = ":{{ include "telegraf-site.prometheusPort" . }}"
-      metric_version = {{ .Values.telegraf.output.metricVersion | default 1 }}
+      metric_version = {{ .Values.telegraf.output.metricVersion | default 2 }}
 
     ###############################################################################
     #                            INPUT PLUGINS                                    #
