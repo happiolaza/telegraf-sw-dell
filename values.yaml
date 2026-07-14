@@ -1,24 +1,85 @@
-# Default values for telegraf-sw-dell
-# Deploy with: helm install -n telemetria-switches ...
+# Default values for telegraf-sw-dell (multi-vendor)
+# Each site overrides in values-<site>.yaml.
+# To add a new site, copy a vendor template from vendors/ and customize.
+
+# ---------------------------------------------------------------------------
+# Global: shared across all sites
+# ---------------------------------------------------------------------------
 global:
   image: docker.io/library/telegraf:1.29-alpine
   imagePullPolicy: IfNotPresent
   proxy:
-    http: http://10.166.15.178:8080
-    https: http://10.166.15.178:8080
-    noProxy: "*.tcloud.telefonica.com.ar,.svc,.svc.cluster.local,.cuyorh.tcloud.ar,.brcrh.tcloud.ar,10.166.46.203,10.213.65.74,10.166.44.203,whiteidam-sso.cuyows.tcloud.ar,10.166.45.105"
+    http: ""
+    https: ""
+    noProxy: ""
 
+# ---------------------------------------------------------------------------
+# Site: identity
+# ---------------------------------------------------------------------------
 site:
-  name: ""                      # REQUIRED: site identifier (cuyo, republica, barracas, ...)
+  name: ""                      # REQUIRED: unique identifier (cuyo, republica, rosario, ...)
   environment: production
+  vendor: ""                    # informational: dell-os10, cisco-ios, aruba-aos, ...
 
+# ---------------------------------------------------------------------------
+# SNMP: connection and tables to collect
+# ---------------------------------------------------------------------------
 snmp:
   community: "SupportAssistSNMP"
   version: 2
-  interval: 60s
-  deviceTagName: "device"       # tag name for sysName in Prometheus metrics
+  interval: "60s"
+  deviceTagName: "device"
   agents: []                    # REQUIRED: list of switch IPs
 
+  # REQUIRED: SNMP tables/fields to collect.
+  # Each item can be:
+  #   - field: a single scalar OID
+  #       - oid: "RFC1213-MIB::sysName.0"
+  #         name: "device"
+  #         is_tag: true
+  #         field: true
+  #
+  #   - table: a full SNMP table
+  #       - oid: "IF-MIB::ifTable"
+  #
+  #   - table with sub-fields: table with specific fields only
+  #       - oid: "HOST-RESOURCES-MIB::hrProcessorTable"
+  #         name: "hrProcessor"
+  #         fields:
+  #           - oid: "HOST-RESOURCES-MIB::hrProcessorFrwID"
+  #             name: "hrProcessorFrwID"
+  #             is_tag: true
+  tables: []
+
+# ---------------------------------------------------------------------------
+# Telegraf: agent and output configuration
+# ---------------------------------------------------------------------------
+telegraf:
+  agent:
+    roundInterval: false
+    metricBatchSize: 5000
+    metricBufferLimit: 50000
+    collectionJitter: "1s"
+    flushInterval: "15s"
+    flushJitter: "2s"
+    precision: "1s"
+    omitHostname: false
+  output:
+    prometheusPort: 9273
+    metricVersion: 1
+
+# ---------------------------------------------------------------------------
+# MIBs: download via init container
+# ---------------------------------------------------------------------------
+mibs:
+  enabled: true
+  image: "alpine:3.19"
+  repo: "https://github.com/Poil/MIBs.git"
+  dirs: []                     # directories to clone from repo (e.g. dell-os10, dell)
+
+# ---------------------------------------------------------------------------
+# Kubernetes: deployment, service, PVC
+# ---------------------------------------------------------------------------
 replicaCount: 1
 
 resources:
@@ -35,12 +96,5 @@ service:
 
 pvc:
   size: 100Mi
-  storageClass: tcloud-unity-iscsi-nlsas
+  storageClass: "tcloud-unity-iscsi-nlsas"
   existingClaim: ""             # set to reuse an existing PVC (must be in same namespace)
-
-mibs:
-  enabled: true
-  repo: "https://github.com/Poil/MIBs.git"
-  dirs:                         # directories to copy from the repo
-    - dell-os10
-    - dell

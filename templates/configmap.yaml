@@ -8,26 +8,29 @@ data:
   telegraf.conf: |
     [global_tags]
       site = "{{ .Values.site.name }}"
+      {{- if .Values.site.vendor }}
+      vendor = "{{ .Values.site.vendor }}"
+      {{- end }}
 
     [agent]
       interval = "{{ .Values.snmp.interval | default "60s" }}"
-      round_interval = false
-      metric_batch_size = 5000
-      metric_buffer_limit = 50000
-      collection_jitter = "1s"
-      flush_interval = "15s"
-      flush_jitter = "2s"
-      precision = "1s"
+      round_interval = {{ .Values.telegraf.agent.roundInterval | default false }}
+      metric_batch_size = {{ .Values.telegraf.agent.metricBatchSize | default 5000 }}
+      metric_buffer_limit = {{ .Values.telegraf.agent.metricBufferLimit | default 50000 }}
+      collection_jitter = "{{ .Values.telegraf.agent.collectionJitter | default "1s" }}"
+      flush_interval = "{{ .Values.telegraf.agent.flushInterval | default "15s" }}"
+      flush_jitter = "{{ .Values.telegraf.agent.flushJitter | default "2s" }}"
+      precision = "{{ .Values.telegraf.agent.precision | default "1s" }}"
       hostname = ""
-      omit_hostname = false
+      omit_hostname = {{ .Values.telegraf.agent.omitHostname | default false }}
 
     ###############################################################################
     #                            OUTPUT PLUGINS                                   #
     ###############################################################################
 
     [[outputs.prometheus_client]]
-      listen = ":9273"
-      metric_version = 2
+      listen = ":{{ include "telegraf-site.prometheusPort" . }}"
+      metric_version = {{ .Values.telegraf.output.metricVersion | default 1 }}
 
     ###############################################################################
     #                            INPUT PLUGINS                                    #
@@ -42,60 +45,31 @@ data:
       ]
       version = {{ .Values.snmp.version | default 2 }}
       community = "{{ .Values.snmp.community }}"
-      path = ["/usr/share/snmp/mibs"]
+      path = ["{{ include "telegraf-site.mibMountPath" . }}"]
       interval = "{{ .Values.snmp.interval | default "60s" }}"
 
+      {{- range .Values.snmp.tables }}
+      {{- if .field }}
       [[inputs.snmp.field]]
-        oid = "RFC1213-MIB::sysName.0"
-        name = "{{ .Values.snmp.deviceTagName | default "device" }}"
+        oid = "{{ .oid }}"
+        name = "{{ .name }}"
+        {{- if .is_tag }}
         is_tag = true
-
-      [[inputs.snmp.field]]
-        oid = "RFC1213-MIB::sysUpTime.0"
-        name = "sw_sysUpTime"
-
+        {{- end }}
+      {{- else }}
       [[inputs.snmp.table]]
-        oid = "IF-MIB::ifTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "IF-MIB::ifXTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "IF-MIB::ifStackTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "IF-MIB::ifRcvAddressTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "HOST-RESOURCES-MIB::hrProcessorTable"
-        name = "hrProcessor"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
+        oid = "{{ .oid }}"
+        {{- if .name }}
+        name = "{{ .name }}"
+        {{- end }}
+        inherit_tags = [{{ $.Values.snmp.deviceTagName | default "device" | quote }}]
+        {{- range .fields }}
         [[inputs.snmp.table.field]]
-          oid = "HOST-RESOURCES-MIB::hrProcessorFrwID"
-          name = "hrProcessorFrwID"
+          oid = "{{ .oid }}"
+          name = "{{ .name }}"
+          {{- if .is_tag }}
           is_tag = true
-
-      [[inputs.snmp.table]]
-        oid = "DELLEMC-OS10-CHASSIS-MIB::os10ChassisTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "DELLEMC-OS10-CHASSIS-MIB::os10CardTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "DELLEMC-OS10-CHASSIS-MIB::os10PowerSupplyTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "DELLEMC-OS10-CHASSIS-MIB::os10FanTrayTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
-
-      [[inputs.snmp.table]]
-        oid = "DELLEMC-OS10-CHASSIS-MIB::os10FanTable"
-        inherit_tags = ["{{ .Values.snmp.deviceTagName | default "device" }}"]
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- end }}

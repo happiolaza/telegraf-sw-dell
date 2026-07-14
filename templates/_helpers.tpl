@@ -13,6 +13,9 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/component: telegraf-snmp
 app.kubernetes.io/part-of: switch-monitoring
 site: {{ .Values.site.name }}
+{{- if .Values.site.vendor }}
+vendor: {{ .Values.site.vendor }}
+{{- end }}
 environment: {{ .Values.site.environment | default "production" }}
 {{- end }}
 
@@ -20,4 +23,16 @@ environment: {{ .Values.site.environment | default "production" }}
 app.kubernetes.io/name: {{ include "telegraf-site.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 site: {{ .Values.site.name }}
+{{- end }}
+
+{{- define "telegraf-site.prometheusPort" -}}
+{{- .Values.telegraf.output.prometheusPort | default 9273 | int }}
+{{- end }}
+
+{{- define "telegraf-site.mibMountPath" -}}
+/usr/share/snmp/mibs
+{{- end }}
+
+{{- define "telegraf-site.configMountPath" -}}
+/etc/telegraf/telegraf.conf
 {{- end }}

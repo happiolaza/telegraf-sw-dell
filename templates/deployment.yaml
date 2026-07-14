@@ -23,7 +23,7 @@ spec:
       {{- if .Values.mibs.enabled }}
       initContainers:
       - name: mibs-downloader
-        image: alpine:3.19
+        image: {{ .Values.mibs.image | default "alpine:3.19" }}
         env:
         - name: HTTP_PROXY
           value: {{ .Values.global.proxy.http | quote }}
@@ -54,7 +54,7 @@ spec:
         image: {{ .Values.global.image | default "quay.io/influxdb/telegraf:1.29-alpine" }}
         imagePullPolicy: {{ .Values.global.imagePullPolicy | default "IfNotPresent" }}
         ports:
-        - containerPort: 9273
+        - containerPort: {{ include "telegraf-site.prometheusPort" . }}
           name: telegraf
           protocol: TCP
         env:
@@ -68,9 +68,9 @@ spec:
           {{- toYaml .Values.resources | nindent 10 }}
         volumeMounts:
         - name: snmp-mibs
-          mountPath: /usr/share/snmp/mibs
+          mountPath: {{ include "telegraf-site.mibMountPath" . }}
         - name: telegraf-config-volume
-          mountPath: /etc/telegraf/telegraf.conf
+          mountPath: {{ include "telegraf-site.configMountPath" . }}
           subPath: telegraf.conf
       volumes:
       - name: snmp-mibs

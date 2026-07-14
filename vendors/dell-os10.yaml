@@ -1,52 +1,62 @@
-# Site: Republica
-# Vendor: Dell OS10
-# Namespace: telegraf-sw-dell
+# =============================================================================
+# Vendor template: Dell OS10
+# =============================================================================
+# Copy this file to values-<site>.yaml and customize site.name + snmp.agents.
+#
+# To add new SNMP tables, append to snmp.tables[].
+# To remove tables, delete the corresponding entry.
+# To customize timing, override telegraf.agent.* or snmp.interval.
+# =============================================================================
 
 site:
-  name: republica
+  name: ""                  # REQUIRED
   vendor: dell-os10
 
-replicaCount: 0
-
 snmp:
-  agents:
-    - 172.29.75.4    # PBL-RPB1-001
-    - 172.29.75.5    # PBL-RPB1-002
-    - 172.29.75.6    # PSL-RPB1-001
-    - 172.29.75.7    # PSL-RPB1-002
-    - 172.29.75.8    # PSL-RPB1-003
-    - 172.29.75.9    # PSL-RPB1-004
-    - 172.29.75.10   # PSP-RPB1-001
-    - 172.29.75.11   # PSP-RPB1-002
+  community: "SupportAssistSNMP"
+  interval: "60s"
+  agents: []                # REQUIRED: list of switch IPs
 
   tables:
+    # --- Identity ---
     - oid: "RFC1213-MIB::sysName.0"
       name: "device"
       is_tag: true
       field: true
+
     - oid: "RFC1213-MIB::sysUpTime.0"
       name: "sw_sysUpTime"
       field: true
+
+    # --- Interfaces ---
     - oid: "IF-MIB::ifTable"
+
     - oid: "IF-MIB::ifXTable"
+
     - oid: "IF-MIB::ifStackTable"
+
     - oid: "IF-MIB::ifRcvAddressTable"
+
+    # --- CPU ---
     - oid: "HOST-RESOURCES-MIB::hrProcessorTable"
       name: "hrProcessor"
       fields:
         - oid: "HOST-RESOURCES-MIB::hrProcessorFrwID"
           name: "hrProcessorFrwID"
           is_tag: true
+
+    # --- Chassis ---
     - oid: "DELLEMC-OS10-CHASSIS-MIB::os10ChassisTable"
+
     - oid: "DELLEMC-OS10-CHASSIS-MIB::os10CardTable"
+
     - oid: "DELLEMC-OS10-CHASSIS-MIB::os10PowerSupplyTable"
+
     - oid: "DELLEMC-OS10-CHASSIS-MIB::os10FanTrayTable"
+
     - oid: "DELLEMC-OS10-CHASSIS-MIB::os10FanTable"
 
 mibs:
   dirs:
     - dell-os10
     - dell
-
-pvc:
-  size: 100Mi

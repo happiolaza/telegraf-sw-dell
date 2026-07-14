@@ -1,8 +1,8 @@
 # telegraf-sw-dell
 
-Helm chart para monitoreo SNMP de switches Dell OS10 via Telegraf, desplegado con ArgoCD.
+Helm chart para monitoreo SNMP de switches via Telegraf, desplegado con ArgoCD. Soporte multi-vendor (Dell OS10, Cisco IOS, etc.).
 
-Recolecta métricas SNMP de switches Dell (sysName, sysUpTime, interfaces, CPU, chasis, fuentes de poder, ventiladores) y las expone en formato Prometheus para scraping.
+Recolecta metricas SNMP de switches y las expone en formato Prometheus para scraping.
 
 ## Arquitectura
 
@@ -15,12 +15,11 @@ Telegraf (1 pod por site)
   |
   | SNMP v2 UDP/161
   v
-Switches Dell OS10 (34 por site)
+Switches Dell/Cisco/etc. (varia por site)
 ```
 
 - **Cluster origen:** TTOOLS-CUY (donde corre ArgoCD, ns `whitecicd`)
 - **Cluster destino:** wcr-operaciones (donde corren los pods, ns `telegraf-sw-dell`)
-- **Namespace destino:** `telegraf-sw-dell`
 - **GitLab repo:** `https://whitecicd-tt.cuyows.tcloud.ar/operaciones-red-cloud/telegraf-sw-dell.git`
 - **Proyecto ArgoCD:** `operaciones-red-cloud`
 
@@ -31,124 +30,160 @@ Switches Dell OS10 (34 por site)
 ├── argocd/
 │   ├── application-set.yaml    # ApplicationSet (genera 1 App por site)
 │   └── root-app.yaml           # (obsoleto, no usar)
+├── vendors/                    # Templates de referencia por vendor
+│   ├── dell-os10.yaml          # SNMP tables para Dell OS10
+│   └── cisco-ios.yaml          # SNMP tables para Cisco IOS
 ├── templates/
-│   ├── _helpers.tpl            # Helpers Helm (fullname, labels)
-│   ├── configmap.yaml          # Config de Telegraf (SNMP input, Prometheus output)
+│   ├── _helpers.tpl            # Helpers Helm (fullname, labels, ports)
+│   ├── configmap.yaml          # Config dinamica de Telegraf (desde values)
 │   ├── deployment.yaml         # Deployment + init container para MIBs
 │   ├── pvc.yaml                # PVC para almacenar MIBs descargadas
 │   └── service.yaml            # ClusterIP :9273
-├── values.yaml                 # Valores por defecto
-├── values-cuyo.yaml            # Overrides para site Cuyo (34 switches)
-├── values-republica.yaml       # Overrides para site Republica (8 switches)
-├── values-barracas.yaml        # Overrides para site Barracas (34 switches)
+├── values.yaml                 # Defaults globales (multi-vendor)
+├── values-cuyo.yaml            # Overrides para site Cuyo (34 switches Dell)
+├── values-republica.yaml       # Overrides para site Republica (8 switches Dell)
+├── values-barracas.yaml        # Overrides para site Barracas (34 switches Dell)
 ├── Chart.yaml                  # Metadata del chart
 └── prometheus-scrape-config.yaml  # Config de scraping para Prometheus
 ```
 
-## Configuracion
+## Agregar un site nuevo
 
-### values.yaml (defaults)
+1. Copiar el template del vendor:
+   ```bash
+   cp vendors/dell-os10.yaml values-<site>.yaml
+   ```
 
-```yaml
-global:
-  image: docker.io/library/telegraf:1.29-alpine
-  imagePullPolicy: IfNotPresent
-  proxy:
-    http: http://10.166.15.178:8080
-    https: http://10.166.15.178:8080
-    noProxy: "*.tcloud.telefonica.com.ar,..."
+2. Editar `values-<site>.yaml`:
+   - Definir `site.name` (identificador unico)
+   - Agregar la lista de IPs en `snmp.agents`
+   - Ajustar `snmp.tables` si necesita MIBs diferentes
+   - Ajustar `mibs.dirs` si necesita MIBs adicionales
 
-site:
-  name: ""           # REQUIRED: identificador del site
-  environment: production
+3. Agregar el site al ApplicationSet en `argocd/application-set.yaml`:
+   ```yaml
+   - site: <nuevosite>
+     valuesFile: values-<nuevosite>.yaml
+   ```
 
-snmp:
-  community: "SupportAssistSNMP"
-  version: 2
-  interval: 60s
-  deviceTagName: "device"
-  agents: []         # REQUIRED: lista de IPs de switches
+4. Agregar el job de scraping en `prometheus-scrape-config.yaml`:
+   ```yaml
+   - job_name: 'telegraf-sw-<nuevosite>'
+     scrape_interval: 30s
+     scrape_timeout: 30s
+     metrics_path: /metrics
+     static_configs:
+     - targets: ['telegraf-<nuevosite>.telegraf-sw-dell.svc.cluster.local:9273']
+     relabel_configs:
+     - target_label: site
+       replacement: <nuevosite>
+   ```
 
-replicaCount: 1
+5. Commit y push. ArgoCD sincronizara automaticamente.
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 200m
-    memory: 256Mi
+## Configuracion multi-vendor
 
-service:
-  type: ClusterIP
-  port: 9273
-
-pvc:
-  size: 100Mi
-  storageClass: tcloud-unity-iscsi-nlsas
-  existingClaim: ""
-
-mibs:
-  enabled: true
-  repo: "https://github.com/Poil/MIBs.git"
-  dirs:
-    - dell-os10
-    - dell
-```
-
-### Campos obligatorios por site
-
-Para crear un nuevo archivo `values-<site>.yaml`, minimo hay que definir:
+### Estructura de values por site
 
 ```yaml
 site:
-  name: <site>                  # identificador unico (cuyo, republica, barracas, ...)
+  name: rosario          # identificador unico
+  vendor: cisco-ios      # informativo
 
 snmp:
-  agents:                       # lista de IPs de los switches del site
-    - 172.28.9.4                # PSP-CYO1-001
-    - 172.28.9.5                # PSP-CYO1-002
-    # ...
+  community: "comunidad"  # override por site
+  interval: "30s"         # override por site
+  agents:
+    - 10.20.30.1
+  tables:                 # listado completo de tablas SNMP
+    - oid: "SNMPv2-MIB::sysName.0"
+      name: "device"
+      is_tag: true
+      field: true
+    - oid: "IF-MIB::ifTable"
 ```
 
-### Campos opcionales
+### Templates de vendor
 
-| Campo | Default | Descripcion |
+Los archivos en `vendors/` son **templates de referencia**, no son consumidos por Helm. Sirven como base para crear nuevos sites:
+
+| Vendor | Archivo | MIBs necesarias |
 |---|---|---|
-| `replicaCount` | `1` | Numbero de replicas (0 para desactivar) |
+| Dell OS10 | `vendors/dell-os10.yaml` | Dell + IETF (descargadas via init container) |
+| Cisco IOS | `vendors/cisco-ios.yaml` | IETF estandar (incluidas en el switch) |
+
+### merging de values
+
+Helm mergea automaticamente defaults + overrides del site:
+- **Escalares y maps**: el site overridea lo que define, lo demas se preserva del default
+- **Listas** (como `snmp.tables`): el site DEBE definir la lista completa, no se concatenan con el default
+
+## Parametros configurables por site
+
+| Parametro | Default | Descripcion |
+|---|---|---|
+| `site.name` | `""` (REQUIRED) | Identificador unico del site |
+| `site.vendor` | `""` | Vendor informativo |
 | `snmp.community` | `SupportAssistSNMP` | Comunidad SNMP v2 |
 | `snmp.version` | `2` | Version SNMP |
-| `snmp.interval` | `60s` | Intervalo de recoleccion SNMP |
-| `snmp.deviceTagName` | `device` | Nombre del tag para sysName en Prometheus |
-| `resources.limits.memory` | `512Mi` | Limite de memoria (ver Sizing) |
-| `pvc.existingClaim` | `""` | Reusar PVC existente |
-| `mibs.enabled` | `true` | Habilitar descarga de MIBs via init container |
+| `snmp.interval` | `60s` | Intervalo de recoleccion |
+| `snmp.tables` | `[]` (REQUIRED) | Tablas/fields SNMP a recolectar |
+| `telegraf.agent.metricBatchSize` | `5000` | Batch size para metricas |
+| `telegraf.agent.flushInterval` | `15s` | Intervalo de flush |
+| `telegraf.output.prometheusPort` | `9273` | Puerto del endpoint /metrics |
+| `mibs.enabled` | `true` | Habilitar init container de MIBs |
+| `mibs.dirs` | `[]` | Directorios a clonar del repo de MIBs |
+| `replicaCount` | `1` | Numero de replicas |
+| `resources.limits.memory` | `512Mi` | Limite de memoria |
 
-## Metricas recolectadas
+## Metricas por vendor
 
-| MIB | Tabla/OID | Metrica |
+### Dell OS10
+
+| MIB | Tabla | Metrica |
 |---|---|---|
-| RFC1213-MIB | `sysName.0` | Tag `device` (nombre del switch) |
+| RFC1213-MIB | `sysName.0` | Tag `device` |
 | RFC1213-MIB | `sysUpTime.0` | `sw_sysUpTime` |
-| IF-MIB | `ifTable` | `ifAdminStatus`, `ifOperStatus`, `ifSpeed`, `ifHCInOctets`, etc. |
-| IF-MIB | `ifXTable` | `ifHCInUcastPkts`, `ifHCOutUcastPkts`, `ifHighSpeed`, etc. |
-| IF-MIB | `ifStackTable` | `ifStackStatus` |
-| IF-MIB | `ifRcvAddressTable` | `ifRcvAddressStatus` |
-| HOST-RESOURCES-MIB | `hrProcessorTable` | `hrProcessorLoad` (CPU load por procesador) |
-| DELLEMC-OS10-CHASSIS-MIB | `os10ChassisTable` | Info del chassis (descripcion, serie, service tag) |
-| DELLEMC-OS10-CHASSIS-MIB | `os10CardTable` | Info de tarjetas (PPID, parte#, hw rev, temp) |
-| DELLEMC-OS10-CHASSIS-MIB | `os10PowerSupplyTable` | Estado de fuentes de poder |
-| DELLEMC-OS10-CHASSIS-MIB | `os10FanTrayTable` | Estado de bandejas de ventiladores |
-| DELLEMC-OS10-CHASSIS-MIB | `os10FanTable` | Estado individual de ventiladores |
+| IF-MIB | `ifTable`, `ifXTable`, `ifStackTable`, `ifRcvAddressTable` | Interfaces |
+| HOST-RESOURCES-MIB | `hrProcessorTable` | CPU load |
+| DELLEMC-OS10-CHASSIS-MIB | `os10ChassisTable`, `os10CardTable`, `os10PowerSupplyTable`, `os10FanTrayTable`, `os10FanTable` | Chassis, tarjetas, PSU, fans |
 
-### Tags en Prometheus
+### Cisco IOS
 
-Cada metrica incluye:
-- `device` — sysName del switch (ej: `PSP-CYO1-001`)
-- `agent_host` — IP del switch
-- `site` — identificador del site (`cuyo`, `republica`, `barracas`)
-- `host` — nombre del pod de telegraf
-- `ifDescr`, `ifIndex`, `ifPhysAddress` — en metricas de interfaces
+| MIB | Tabla | Metrica |
+|---|---|---|
+| SNMPv2-MIB | `sysName.0` | Tag `device` |
+| SNMPv2-MIB | `sysUpTime.0` | `sw_sysUpTime` |
+| IF-MIB | `ifTable`, `ifXTable` | Interfaces |
+| CISCO-PROCESS-MIB | `cpmCPUTotalTable` | CPU load |
+| CISCO-ENTITY-SENSOR-MIB | `entSensorValueTable` | Sensores ambientales |
+
+## Deploy con ArgoCD
+
+### ApplicationSet
+
+El `argocd/application-set.yaml` genera automaticamente 1 Application por site.
+
+**Requisitos en ArgoCD:**
+- Namespace: `whitecicd`
+- Proyecto: `operaciones-red-cloud`
+- Secret de repo: `repo-telegraf-sw-dell` con label `argocd.argoproj.io/secret-type: repository`
+- Cluster destino: `https://api.wcr-operaciones.cuyows.tcloud.ar:6443`
+
+### Configuracion de Prometheus
+
+El `prometheus-scrape-config.yaml` contiene la configuracion para agregar al ConfigMap `prometehus-config` en namespace `grafana-operaciones`.
+
+Los Services ClusterIP se resuelven cross-namespace via DNS interno:
+```
+telegraf-<site>.telegraf-sw-dell.svc.cluster.local:9273
+```
+
+Aplicar con:
+```bash
+kubectl edit configmap prometehus-config -n grafana-operaciones
+kubectl rollout restart deployment prometheus -n grafana-operaciones
+```
 
 ## Sizing de recursos
 
@@ -159,123 +194,6 @@ Cada metrica incluye:
 | 35-60 | 1Gi | 500m |
 
 **Regla empirica:** ~7Mi de memoria por switch, ~300 series de metricas por switch.
-
-El `flush_interval` y `metric_batch_size` se ajustan para evitar warnings con el scrap interval de Prometheus:
-
-```yaml
-# Config actual (en configmap.yaml):
-metric_batch_size = 5000    # acumula antes de serializar
-flush_interval = "15s"      # tiempo para completar el expose de /metrics
-```
-
-## Deploy con ArgoCD
-
-### ApplicationSet
-
-El `argocd/application-set.yaml` genera automaticamente 1 Application por site:
-
-```yaml
-generators:
-- list:
-    elements:
-    - site: cuyo
-      valuesFile: values-cuyo.yaml
-    - site: republica
-      valuesFile: values-republica.yaml
-    - site: barracas
-      valuesFile: values-barracas.yaml
-```
-
-**Requisitos en ArgoCD:**
-- Namespace: `whitecicd`
-- Proyecto: `operaciones-red-cloud`
-- Secret de repo: `repo-telegraf-sw-dell` con label `argocd.argoproj.io/secret-type: repository`
-- Cluster destino: `https://api.wcr-operaciones.cuyows.tcloud.ar:6443`
-
-### Secret del repo
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: repo-telegraf-sw-dell
-  namespace: whitecicd
-  labels:
-    argocd.argoproj.io/secret-type: repository
-type: Opaque
-stringData:
-  type: git
-  name: telegraf-sw-dell
-  url: https://whitecicd-tt.cuyows.tcloud.ar/operaciones-red-cloud/telegraf-sw-dell.git
-  username: argocd-whitecicd-cuyo
-  password: <PAT o password de GitLab>
-  project: operaciones-red-cloud
-```
-
-### Aplicar el ApplicationSet
-
-El ApplicationSet usa Go templates (`{{ site }}`, `{{ valuesFile }}`), por lo que no se puede aplicar directamente con `kubectl apply`. Opciones:
-
-1. **Via ArgoCD UI/CLI** — crear el ApplicationSet desde el repo
-2. **Renderizar y aplicar** — renderizar los templates manualmente
-
-### Agregar un nuevo site
-
-1. Crear `values-<site>.yaml` con la lista de switches
-2. Agregar el site al listado en `argocd/application-set.yaml`:
-   ```yaml
-   - site: <nuevosite>
-     valuesFile: values-<nuevosite>.yaml
-   ```
-3. Agregar el job de scraping en `prometheus-scrape-config.yaml`:
-   ```yaml
-   - job_name: 'telegraf-sw-<nuevosite>'
-     scrape_interval: 30s
-     metrics_path: /metrics
-     static_configs:
-     - targets: ['telegraf-<nuevosite>.telegraf-sw-dell.svc.cluster.local:9273']
-   ```
-4. Commit y push. ArgoCD sincronizara automaticamente.
-
-## Configuracion de Prometheus
-
-El `prometheus-scrape-config.yaml` contiene la configuracion para el ConfigMap `prometehus-config` en el namespace `grafana-operaciones`.
-
-Los Services ClusterIP se resuelven cross-namespace via DNS interno:
-```
-telegraf-cuyo.telegraf-sw-dell.svc.cluster.local:9273
-telegraf-republica.telegraf-sw-dell.svc.cluster.local:9273
-telegraf-barracas.telegraf-sw-dell.svc.cluster.local:9273
-```
-
-Aplicar con:
-```bash
-# Editar el ConfigMap
-kubectl edit configmap prometehus-config -n grafana-operaciones
-
-# Reiniciar Prometheus
-kubectl rollout restart deployment prometheus -n grafana-operaciones
-```
-
-### Scraping recomendado
-
-| Parametro | Valor |
-|---|---|
-| `scrape_interval` | 30s (ideal), 60s (minimo) |
-| `flush_interval` (telegraf) | 15s |
-| `snmp.interval` (telegraf) | 60s |
-
-Con scrape=30s, Prometheus siempre captura un snapshot completo de metricas entre ciclos de SNMP.
-
-## Init container: descarga de MIBs
-
-El init container `mibs-downloader` ejecuta al inicio de cada pod:
-
-1. Instala `git` y `net-snmp-tools` (MIBs estandar IETF)
-2. Copia las MIBs estandar a `/mibs/`
-3. Clona sparse del repo `Poil/MIBs.git` (solo directorios `dell-os10` y `dell`)
-4. Copia las Dell MIBs a `/mibs/` (sobre-escribe las estandar si hay conflicto)
-5. El volumen PVC se monta en `/usr/share/snmp/mibs` en el contenedor de telegraf
 
 ## Mantenedor
 

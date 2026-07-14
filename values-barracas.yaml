@@ -1,13 +1,15 @@
-# Site: Barracas (NUEVO)
-# Namespace: telemetria-switches
+# Site: Barracas
+# Vendor: Dell OS10
+# Namespace: telegraf-sw-dell
+
 site:
   name: barracas
+  vendor: dell-os10
 
 replicaCount: 0
 
 snmp:
   agents:
-    # Reemplazar con las IPs reales de los switches Dell en Barracas
     - 172.28.9.132 # PSP-BRC1-001
     - 172.28.9.133 # PSP-BRC1-002
     - 172.28.9.134 # PBL-BRC1-001
@@ -42,6 +44,35 @@ snmp:
     - 172.28.9.214 # PSL-BRC1-028
     - 172.28.9.215 # PSL-BRC1-029
     - 172.28.9.216 # PSL-BRC1-030
+
+  tables:
+    - oid: "RFC1213-MIB::sysName.0"
+      name: "device"
+      is_tag: true
+      field: true
+    - oid: "RFC1213-MIB::sysUpTime.0"
+      name: "sw_sysUpTime"
+      field: true
+    - oid: "IF-MIB::ifTable"
+    - oid: "IF-MIB::ifXTable"
+    - oid: "IF-MIB::ifStackTable"
+    - oid: "IF-MIB::ifRcvAddressTable"
+    - oid: "HOST-RESOURCES-MIB::hrProcessorTable"
+      name: "hrProcessor"
+      fields:
+        - oid: "HOST-RESOURCES-MIB::hrProcessorFrwID"
+          name: "hrProcessorFrwID"
+          is_tag: true
+    - oid: "DELLEMC-OS10-CHASSIS-MIB::os10ChassisTable"
+    - oid: "DELLEMC-OS10-CHASSIS-MIB::os10CardTable"
+    - oid: "DELLEMC-OS10-CHASSIS-MIB::os10PowerSupplyTable"
+    - oid: "DELLEMC-OS10-CHASSIS-MIB::os10FanTrayTable"
+    - oid: "DELLEMC-OS10-CHASSIS-MIB::os10FanTable"
+
+mibs:
+  dirs:
+    - dell-os10
+    - dell
 
 pvc:
   size: 100Mi

@@ -1,0 +1,50 @@
+# =============================================================================
+# Vendor template: Cisco IOS
+# =============================================================================
+# Copy this file to values-<site>.yaml and customize site.name + snmp.agents.
+#
+# MIBs: Cisco IOS ships with standard IETF MIBs + CISCO-PROCESS-MIB and
+#       CISCO-ENTITY-SENSOR-MIB. No extra MIB download needed.
+# =============================================================================
+
+site:
+  name: ""                  # REQUIRED
+  vendor: cisco-ios
+
+snmp:
+  community: "public"
+  interval: "60s"
+  agents: []                # REQUIRED: list of switch IPs
+
+  tables:
+    # --- Identity ---
+    - oid: "SNMPv2-MIB::sysName.0"
+      name: "device"
+      is_tag: true
+      field: true
+
+    - oid: "SNMPv2-MIB::sysUpTime.0"
+      name: "sw_sysUpTime"
+      field: true
+
+    # --- Interfaces ---
+    - oid: "IF-MIB::ifTable"
+
+    - oid: "IF-MIB::ifXTable"
+
+    # --- CPU ---
+    - oid: "CISCO-PROCESS-MIB::cpmCPUTotalTable"
+      name: "cpmCPU"
+      fields:
+        - oid: "CISCO-PROCESS-MIB::cpmCPUTotal5min"
+          name: "cpmCPUTotal5min"
+        - oid: "CISCO-PROCESS-MIB::cpmCPUTotal1min"
+          name: "cpmCPUTotal1min"
+
+    # --- Environment sensors ---
+    - oid: "CISCO-ENTITY-SENSOR-MIB::entSensorValueTable"
+      name: "sensorValues"
+
+mibs:
+  enabled: false             # Cisco IOS MIBs are standard, no download needed
+  dirs: []
